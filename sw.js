@@ -6,11 +6,10 @@ const CACHE_NAME = 'lab-8-starter';
 // Installs the service worker. Feed it some initial URLs to cache
 self.addEventListener('install', function (event) {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(function (cache) {
+    caches.open(CACHE_NAME)
+    .then(cache => cache.addAll(RECIPE_URLS))
       // B6. TODO - Add all of the URLs from RECIPE_URLs here so that they are
       //            added to the cache when the ServiceWorker is installed
-      return cache.addAll([]);
-    })
   );
 });
 
@@ -34,7 +33,22 @@ self.addEventListener('fetch', function (event) {
   /*******************************/
   // B7. TODO - Respond to the event by opening the cache using the name we gave
   //            above (CACHE_NAME)
-  // B8. TODO - If the request is in the cache, return with the cached version.
-  //            Otherwise fetch the resource, add it to the cache, and return
-  //            network response.
+  event.respondWith(
+    caches.open(CACHE_NAME)                             // B7
+      .then(function(cache) {
+        return cache.match(event.request)               // B8: check cache
+          .then(function(cachedResponse) {
+            if (cachedResponse) {
+              return cachedResponse;                    // return from cache
+            }
+            // not in cache → fetch from network
+            return fetch(event.request)                 // network fetch
+              .then(function(networkResponse) {
+                // add the new resource to cache for next time
+                cache.put(event.request, networkResponse.clone());
+                return networkResponse;                 // return network response
+              });
+          });
+      })
+  );
 });
